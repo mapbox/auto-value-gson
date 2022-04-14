@@ -16,9 +16,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Primitives;
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
@@ -46,7 +44,6 @@ import io.sweers.autotransient.AutoTransient;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -836,15 +833,6 @@ public class AutoValueGsonExtension extends AutoValueExtension {
     readMethod.addStatement("return null");
     readMethod.endControlFlow();
 
-    Property unrecognisedJsonPropertiesContainer = properties.stream()
-      .filter(this::isUnrecognisedJsonPropertiesContainer)
-      .findFirst()
-      .orElse(null);
-    TypeName mapOfObjects = ParameterizedTypeName.get(LinkedHashMap.class, String.class, Object.class);
-    if (unrecognisedJsonPropertiesContainer != null) {
-      readMethod.addStatement("$T unrecognised = null", mapOfObjects);
-    }
-
     readMethod.addStatement("$N.beginObject()", jsonReader);
 
     // Will be empty if using a AutoValue builder
@@ -899,6 +887,16 @@ public class AutoValueGsonExtension extends AutoValueExtension {
         }
         readMethod.addCode(";\n$]");
       }
+    }
+
+    Property unrecognisedJsonPropertiesContainer = properties.stream()
+      .filter(this::isUnrecognisedJsonPropertiesContainer)
+      .findFirst()
+      .orElse(null);
+    if (unrecognisedJsonPropertiesContainer != null) {
+      TypeName mapOfObjects = ParameterizedTypeName.get(LinkedHashMap.class, String.class, Object.class);
+      readMethod.addStatement("$T unrecognised = new $T()", mapOfObjects, mapOfObjects);
+      readMethod.addStatement("builder.$L(unrecognised)", unrecognisedJsonPropertiesContainer.methodName);
     }
 
     readMethod.beginControlFlow("while ($N.hasNext())", jsonReader);
@@ -966,15 +964,8 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       }
     }
     if (unrecognisedJsonPropertiesContainer != null) {
-
-      readMethod.beginControlFlow("if (unrecognised == null)");
-      readMethod.addStatement("unrecognised = new $T()", mapOfObjects);
-      readMethod.addStatement("builder.$L(unrecognised)", unrecognisedJsonPropertiesContainer.methodName);
-      readMethod.endControlFlow();
-
       readMethod.addStatement("$T number = gson.fromJson(jsonReader, $T.class)", JsonElement.class, JsonElement.class);
       readMethod.addStatement("unrecognised.put(_name, new $T(number))", SerializableWrapper.class);
-
       readMethod.addStatement("continue");
     } else {
       readMethod.addStatement("$N.skipValue()", jsonReader);
