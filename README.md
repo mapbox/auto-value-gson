@@ -228,6 +228,7 @@ Snapshots of the latest development version are available in [Sonatype's `snapsh
 ## License
 
 ```
+Copyright (c) 2022 Mapbox, Inc.
 Copyright 2015 Ryan Harter.
 
 Licensed under the Apache License, Version 2.0 (the "License");
