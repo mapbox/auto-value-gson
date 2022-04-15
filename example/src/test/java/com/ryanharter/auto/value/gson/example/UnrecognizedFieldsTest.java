@@ -3,18 +3,11 @@ package com.ryanharter.auto.value.gson.example;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.ryanharter.auto.value.gson.UnrecognizedJsonPropertiesFeatureFlag;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 public class UnrecognizedFieldsTest {
-
-    @Before
-    public void turnOnFeature() {
-        UnrecognizedJsonPropertiesFeatureFlag.enable();
-    }
 
     @Test
     public void readWriteFullyRecognisedJson() {
@@ -58,32 +51,6 @@ public class UnrecognizedFieldsTest {
         String json = gson.toJson(object);
 
         assertEquals(originalJson, json);
-    }
-
-    @Test
-    public void readAndWriteUnknownArrayWhenFeatureIsTurnedOff() {
-        UnrecognizedJsonPropertiesFeatureFlag.disable();
-        Gson gson = createGson();
-        String originalJson = "{\"knownField\":9,\"unknownArray\":[1,2,true,{\"a\":\"b\"}]}";
-
-        UnrecognizedExample object = gson.fromJson(originalJson, UnrecognizedExample.class);
-        String json = gson.toJson(object);
-
-        String expectedJson = "{\"knownField\":9}";
-        assertEquals(expectedJson, json);
-    }
-
-    @Test
-    public void readAndWriteUnknownArrayWhenFeatureTurnedOffInTheMiddle() {
-        Gson gson = createGson();
-        String originalJson = "{\"knownField\":9,\"unknownArray\":[1,2,true,{\"a\":\"b\"}]}";
-
-        UnrecognizedExample object = gson.fromJson(originalJson, UnrecognizedExample.class);
-        UnrecognizedJsonPropertiesFeatureFlag.disable();
-        String json = gson.toJson(object);
-
-        String expectedJson = "{\"knownField\":9}";
-        assertEquals(expectedJson, json);
     }
 
     private Gson createGson() {
