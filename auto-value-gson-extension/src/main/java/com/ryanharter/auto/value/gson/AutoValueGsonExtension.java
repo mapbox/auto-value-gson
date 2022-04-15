@@ -717,7 +717,7 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       }
 
       if (isUnrecognizedJsonPropertiesContainer(prop)) {
-        writeMethod.beginControlFlow("if(object.$L() != null)", prop.methodName);
+        writeMethod.beginControlFlow("if(object.$L() != null && $T.isEnabled())", prop.methodName, UnrecognizedJsonPropertiesFeatureFlag.class);
 
         TypeName unrecognizedMapEntryType = ParameterizedTypeName.get(Map.Entry.class, String.class, Object.class);
         writeMethod.beginControlFlow("for ($T entry : object.$L().entrySet())", unrecognizedMapEntryType, prop.methodName);
@@ -961,9 +961,15 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       }
     }
     if (unrecognisedJsonPropertiesContainer != null) {
+      readMethod.beginControlFlow("if ($T.isEnabled())", UnrecognizedJsonPropertiesFeatureFlag.class);
+
       readMethod.addStatement("$T element = gson.fromJson(jsonReader, $T.class)", JsonElement.class, JsonElement.class);
       readMethod.addStatement("unrecognised.put(_name, new $T(element))", SerializableWrapper.class);
       readMethod.addStatement("continue");
+
+      readMethod.nextControlFlow("else");
+      readMethod.addStatement("$N.skipValue()", jsonReader);
+      readMethod.endControlFlow();
     } else {
       readMethod.addStatement("$N.skipValue()", jsonReader);
     }
