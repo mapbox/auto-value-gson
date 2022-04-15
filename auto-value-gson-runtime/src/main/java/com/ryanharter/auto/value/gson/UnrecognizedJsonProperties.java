@@ -12,5 +12,5 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
  */
 @Retention(SOURCE)
 @Target(METHOD)
-public @interface UnrecognisedJsonProperties {
+public @interface UnrecognizedJsonProperties {
 }

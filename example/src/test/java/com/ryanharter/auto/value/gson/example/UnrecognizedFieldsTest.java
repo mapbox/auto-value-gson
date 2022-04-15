@@ -7,14 +7,14 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class UnrecognisedFieldsTest {
+public class UnrecognizedFieldsTest {
 
     @Test
     public void readWriteFullyRecognisedJson() {
         Gson gson = createGson();
         String sourceJson = "{\"knownField\":9}";
 
-        UnrecognisedExample object = gson.fromJson(sourceJson, UnrecognisedExample.class);
+        UnrecognizedExample object = gson.fromJson(sourceJson, UnrecognizedExample.class);
         String json = gson.toJson(object);
 
         assertEquals(sourceJson, json);
@@ -25,7 +25,7 @@ public class UnrecognisedFieldsTest {
         Gson gson = createGson();
         String sourceJson = "{\"knownField\":9,\"unknownField\":7,\"oneMoreUnknown\":true}";
 
-        UnrecognisedExample object = gson.fromJson(sourceJson, UnrecognisedExample.class);
+        UnrecognizedExample object = gson.fromJson(sourceJson, UnrecognizedExample.class);
         String json = gson.toJson(object);
 
         assertEquals(sourceJson, json);
@@ -36,7 +36,7 @@ public class UnrecognisedFieldsTest {
         Gson gson = createGson();
         String originalJson = "{\"knownField\":9,\"unknownObject\":{\"unknownField\":\"test\"}}";
 
-        UnrecognisedExample object = gson.fromJson(originalJson, UnrecognisedExample.class);
+        UnrecognizedExample object = gson.fromJson(originalJson, UnrecognizedExample.class);
         String json = gson.toJson(object);
 
         assertEquals(originalJson, json);
@@ -47,7 +47,7 @@ public class UnrecognisedFieldsTest {
         Gson gson = createGson();
         String originalJson = "{\"knownField\":9,\"unknownArray\":[1,2,true,{\"a\":\"b\"}]}";
 
-        UnrecognisedExample object = gson.fromJson(originalJson, UnrecognisedExample.class);
+        UnrecognizedExample object = gson.fromJson(originalJson, UnrecognizedExample.class);
         String json = gson.toJson(object);
 
         assertEquals(originalJson, json);
