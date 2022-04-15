@@ -889,10 +889,7 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       }
     }
 
-    Property unrecognisedJsonPropertiesContainer = properties.stream()
-      .filter(this::isUnrecognisedJsonPropertiesContainer)
-      .findFirst()
-      .orElse(null);
+    Property unrecognisedJsonPropertiesContainer = findUnrecognisedJsonPropertiesContainer(properties, processingEnvironment);
     if (unrecognisedJsonPropertiesContainer != null) {
       TypeName mapOfObjects = ParameterizedTypeName.get(LinkedHashMap.class, String.class, Object.class);
       readMethod.addStatement("$T unrecognised = new $T()", mapOfObjects, mapOfObjects);
@@ -999,6 +996,25 @@ public class AutoValueGsonExtension extends AutoValueExtension {
     }
 
     return readMethod.build();
+  }
+
+  private Property findUnrecognisedJsonPropertiesContainer(List<Property> properties, ProcessingEnvironment processingEnvironment) {
+    List<Property> unrecognisedProperties = properties.stream()
+      .filter(this::isUnrecognisedJsonPropertiesContainer)
+      .collect(Collectors.toList());
+    if (unrecognisedProperties.size() > 1) {
+      processingEnvironment.getMessager().printMessage(
+        Diagnostic.Kind.ERROR,
+        String.format("Only one method can be annotated with %s", UnrecognisedJsonProperties.class.getSimpleName()),
+        unrecognisedProperties.get(1).element
+      );
+      return unrecognisedProperties.get(0);
+    }
+    if (unrecognisedProperties.size() == 1) {
+      return unrecognisedProperties.get(0);
+    } else {
+      return null;
+    }
   }
 
   private boolean isUnrecognisedJsonPropertiesContainer(Property unrecognised) {
