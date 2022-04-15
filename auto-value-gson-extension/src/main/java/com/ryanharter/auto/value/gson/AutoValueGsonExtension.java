@@ -964,8 +964,8 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       }
     }
     if (unrecognisedJsonPropertiesContainer != null) {
-      readMethod.addStatement("$T number = gson.fromJson(jsonReader, $T.class)", JsonElement.class, JsonElement.class);
-      readMethod.addStatement("unrecognised.put(_name, new $T(number))", SerializableWrapper.class);
+      readMethod.addStatement("$T element = gson.fromJson(jsonReader, $T.class)", JsonElement.class, JsonElement.class);
+      readMethod.addStatement("unrecognised.put(_name, new $T(element))", SerializableWrapper.class);
       readMethod.addStatement("continue");
     } else {
       readMethod.addStatement("$N.skipValue()", jsonReader);
