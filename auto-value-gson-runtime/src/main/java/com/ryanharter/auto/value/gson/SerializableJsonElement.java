@@ -17,10 +17,16 @@ public class SerializableJsonElement implements Serializable {
 
   private JsonElement element;
 
+  /***
+   * @param element is json element to wrap
+   */
   public SerializableJsonElement(JsonElement element) {
     this.element = element;
   }
 
+  /***
+   * @return the wrapped element
+   */
   public JsonElement getElement() {
     return this.element;
   }
