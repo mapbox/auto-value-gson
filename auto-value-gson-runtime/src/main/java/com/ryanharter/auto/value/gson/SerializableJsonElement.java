@@ -10,6 +10,9 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Objects;
 
+/***
+ * Wraps {@link JsonElement} and handles java serialization.
+ */
 public class SerializableJsonElement implements Serializable {
 
   private JsonElement element;
