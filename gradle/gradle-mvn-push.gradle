@@ -1,3 +1,4 @@
+// modified by mapbox
 /*
  * Copyright 2013 Chris Banes
  *
@@ -45,6 +46,7 @@ def getRepositoryPassword() {
 afterEvaluate { project ->
     uploadArchives {
         repositories {
+            mavenLocal()
             mavenDeployer {
                 beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
@@ -214,5 +216,16 @@ afterEvaluate { project ->
             archives sourcesJar
             archives javadocJar
         }
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        mavenLocal()
     }
 }

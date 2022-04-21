@@ -1,3 +1,4 @@
+// modified by mapbox
 package com.ryanharter.auto.value.gson;
 
 import com.google.auto.common.GeneratedAnnotations;
@@ -15,6 +16,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Primitives;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
@@ -712,6 +714,23 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       if (prop.isTransient()) {
         continue;
       }
+
+      if (isUnrecognizedJsonPropertiesContainer(prop)) {
+        writeMethod.beginControlFlow("if(object.$L() != null)", prop.methodName);
+
+        TypeName unrecognizedMapEntryType = ParameterizedTypeName.get(Map.Entry.class, String.class, SerializableJsonElement.class);
+        writeMethod.beginControlFlow("for ($T entry : object.$L().entrySet())", unrecognizedMapEntryType, prop.methodName);
+
+        writeMethod.addStatement("jsonWriter.name(entry.getKey())");
+        writeMethod.addStatement("$T element = entry.getValue().getElement()", JsonElement.class);
+        writeMethod.addStatement("$T adapter = gson.getAdapter(element.getClass())", TypeAdapter.class);
+        writeMethod.addStatement("adapter.write(jsonWriter, element)");
+
+        writeMethod.endControlFlow(); // for map entries
+        writeMethod.endControlFlow(); // if(object.$L() != null)
+        continue;
+      }
+
       if (prop.hasSerializedNameAnnotation()) {
         writeMethod.addStatement("$N.name($S)", jsonWriter, prop.serializedName());
       } else if (useFieldNamePolicy) {
@@ -869,6 +888,13 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       }
     }
 
+    Property unrecognisedJsonPropertiesContainer = findUnrecognizedJsonPropertiesContainer(properties, processingEnvironment);
+    if (unrecognisedJsonPropertiesContainer != null) {
+      TypeName mapOfSerializableJsonElements = ParameterizedTypeName.get(LinkedHashMap.class, String.class, SerializableJsonElement.class);
+      readMethod.addStatement("$T unrecognised = new $T()", mapOfSerializableJsonElements, mapOfSerializableJsonElements);
+      readMethod.addStatement("builder.$L(unrecognised)", unrecognisedJsonPropertiesContainer.methodName);
+    }
+
     readMethod.beginControlFlow("while ($N.hasNext())", jsonReader);
 
     FieldSpec name = FieldSpec.builder(String.class, "_name").build();
@@ -910,6 +936,9 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       if (prop.isTransient()) {
         continue;
       }
+      if (prop == unrecognisedJsonPropertiesContainer) {
+        continue;
+      }
       if (!prop.hasSerializedNameAnnotation()) {
         if (useFieldNamePolicy) {
           readMethod.beginControlFlow("if (realFieldNames.get($S).equals(_name))", prop.humanName);
@@ -930,7 +959,14 @@ public class AutoValueGsonExtension extends AutoValueExtension {
         readMethod.endControlFlow();
       }
     }
-    readMethod.addStatement("$N.skipValue()", jsonReader);
+    if (unrecognisedJsonPropertiesContainer != null) {
+      readMethod.addStatement("$T element = gson.fromJson(jsonReader, $T.class)", JsonElement.class, JsonElement.class);
+      readMethod.addStatement("unrecognised.put(_name, new $T(element))", SerializableJsonElement.class);
+      readMethod.addStatement("continue");
+    } else {
+      readMethod.addStatement("$N.skipValue()", jsonReader);
+    }
+
     readMethod.endControlFlow(); // default case
 
     readMethod.endControlFlow(); // switch
@@ -959,6 +995,33 @@ public class AutoValueGsonExtension extends AutoValueExtension {
     }
 
     return readMethod.build();
+  }
+
+  private Property findUnrecognizedJsonPropertiesContainer(List<Property> properties, ProcessingEnvironment processingEnvironment) {
+    List<Property> unrecognisedProperties = properties.stream()
+      .filter(this::isUnrecognizedJsonPropertiesContainer)
+      .collect(Collectors.toList());
+    if (unrecognisedProperties.size() > 1) {
+      processingEnvironment.getMessager().printMessage(
+        Diagnostic.Kind.ERROR,
+        String.format("Only one method can be annotated with %s", UnrecognizedJsonProperties.class.getSimpleName()),
+        unrecognisedProperties.get(1).element
+      );
+      return unrecognisedProperties.get(0);
+    }
+    if (unrecognisedProperties.size() == 1) {
+      return unrecognisedProperties.get(0);
+    } else {
+      return null;
+    }
+  }
+
+  private boolean isUnrecognizedJsonPropertiesContainer(Property unrecognised) {
+    return unrecognised.methodAnnotations.stream()
+      .anyMatch(
+        annot ->
+          annot.getAnnotationType().asElement().getSimpleName().contentEquals(UnrecognizedJsonProperties.class.getSimpleName())
+      );
   }
 
   /**
