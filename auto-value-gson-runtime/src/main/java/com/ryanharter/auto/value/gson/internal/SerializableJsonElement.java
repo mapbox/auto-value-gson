@@ -10,11 +10,11 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class SerializableWrapper implements Serializable {
+public class SerializableJsonElement implements Serializable {
 
   private JsonElement element;
 
-  public SerializableWrapper(JsonElement element) {
+  public SerializableJsonElement(JsonElement element) {
     this.element = element;
   }
 
@@ -25,7 +25,7 @@ public class SerializableWrapper implements Serializable {
   @Override public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    SerializableWrapper that = (SerializableWrapper) o;
+    SerializableJsonElement that = (SerializableJsonElement) o;
     return Objects.equals(element, that.element);
   }
 
