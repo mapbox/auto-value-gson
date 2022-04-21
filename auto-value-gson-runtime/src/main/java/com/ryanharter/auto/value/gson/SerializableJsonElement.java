@@ -1,5 +1,5 @@
 // modified by mapbox
-package com.ryanharter.auto.value.gson.internal;
+package com.ryanharter.auto.value.gson;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;

@@ -5,6 +5,7 @@ import com.google.auto.value.AutoValue;
 import com.google.gson.Gson;
 import com.google.gson.TypeAdapter;
 import com.ryanharter.auto.value.gson.UnrecognizedJsonProperties;
+import com.ryanharter.auto.value.gson.SerializableJsonElement;
 
 import java.util.Map;
 
@@ -23,12 +24,12 @@ public abstract class UnrecognizedExample {
 
   @Nullable
   @UnrecognizedJsonProperties
-  abstract Map<String, Object> unknownProperties();
+  abstract Map<String, SerializableJsonElement> unknownProperties();
 
   @AutoValue.Builder
   public static abstract class Builder {
     public abstract Builder knownField(int value);
-    abstract Builder unknownProperties(@Nullable Map<String, Object> value);
+    abstract Builder unknownProperties(@Nullable Map<String, SerializableJsonElement> value);
     public abstract UnrecognizedExample build();
   }
 

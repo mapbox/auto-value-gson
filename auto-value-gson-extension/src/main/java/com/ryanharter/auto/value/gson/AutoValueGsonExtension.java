@@ -23,7 +23,6 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
-import com.ryanharter.auto.value.gson.internal.SerializableJsonElement;
 import com.ryanharter.auto.value.gson.internal.WildcardUtil;
 import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ArrayTypeName;
@@ -719,11 +718,11 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       if (isUnrecognizedJsonPropertiesContainer(prop)) {
         writeMethod.beginControlFlow("if(object.$L() != null)", prop.methodName);
 
-        TypeName unrecognizedMapEntryType = ParameterizedTypeName.get(Map.Entry.class, String.class, Object.class);
+        TypeName unrecognizedMapEntryType = ParameterizedTypeName.get(Map.Entry.class, String.class, SerializableJsonElement.class);
         writeMethod.beginControlFlow("for ($T entry : object.$L().entrySet())", unrecognizedMapEntryType, prop.methodName);
 
         writeMethod.addStatement("jsonWriter.name(entry.getKey())");
-        writeMethod.addStatement("$T element = (($T)entry.getValue()).getElement()", JsonElement.class, SerializableJsonElement.class);
+        writeMethod.addStatement("$T element = entry.getValue().getElement()", JsonElement.class);
         writeMethod.addStatement("$T adapter = gson.getAdapter(element.getClass())", TypeAdapter.class);
         writeMethod.addStatement("adapter.write(jsonWriter, element)");
 
@@ -891,8 +890,8 @@ public class AutoValueGsonExtension extends AutoValueExtension {
 
     Property unrecognisedJsonPropertiesContainer = findUnrecognizedJsonPropertiesContainer(properties, processingEnvironment);
     if (unrecognisedJsonPropertiesContainer != null) {
-      TypeName mapOfObjects = ParameterizedTypeName.get(LinkedHashMap.class, String.class, Object.class);
-      readMethod.addStatement("$T unrecognised = new $T()", mapOfObjects, mapOfObjects);
+      TypeName mapOfSerializableJsonElements = ParameterizedTypeName.get(LinkedHashMap.class, String.class, SerializableJsonElement.class);
+      readMethod.addStatement("$T unrecognised = new $T()", mapOfSerializableJsonElements, mapOfSerializableJsonElements);
       readMethod.addStatement("builder.$L(unrecognised)", unrecognisedJsonPropertiesContainer.methodName);
     }
 
