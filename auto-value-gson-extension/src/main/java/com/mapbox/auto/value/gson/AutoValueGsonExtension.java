@@ -888,11 +888,10 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       }
     }
 
+    TypeName mapOfSerializableJsonElements = ParameterizedTypeName.get(LinkedHashMap.class, String.class, SerializableJsonElement.class);
     Property unrecognisedJsonPropertiesContainer = findUnrecognizedJsonPropertiesContainer(properties, processingEnvironment);
     if (unrecognisedJsonPropertiesContainer != null) {
-      TypeName mapOfSerializableJsonElements = ParameterizedTypeName.get(LinkedHashMap.class, String.class, SerializableJsonElement.class);
-      readMethod.addStatement("$T unrecognised = new $T()", mapOfSerializableJsonElements, mapOfSerializableJsonElements);
-      readMethod.addStatement("builder.$L(unrecognised)", unrecognisedJsonPropertiesContainer.methodName);
+      readMethod.addStatement("$T unrecognised = null", mapOfSerializableJsonElements);
     }
 
     readMethod.beginControlFlow("while ($N.hasNext())", jsonReader);
@@ -960,6 +959,11 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       }
     }
     if (unrecognisedJsonPropertiesContainer != null) {
+      readMethod.beginControlFlow("if (unrecognised == null)");
+      readMethod.addStatement("unrecognised = new $T()", mapOfSerializableJsonElements);
+      readMethod.addStatement("builder.$L(unrecognised)", unrecognisedJsonPropertiesContainer.methodName);
+      readMethod.endControlFlow();
+
       readMethod.addStatement("$T element = gson.fromJson(jsonReader, $T.class)", JsonElement.class, JsonElement.class);
       readMethod.addStatement("unrecognised.put(_name, new $T(element))", SerializableJsonElement.class);
       readMethod.addStatement("continue");
