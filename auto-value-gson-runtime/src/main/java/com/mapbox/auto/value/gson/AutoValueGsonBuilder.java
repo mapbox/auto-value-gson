@@ -1,3 +1,4 @@
+// modified by mapbox
 package com.mapbox.auto.value.gson;
 
 import static java.lang.annotation.ElementType.METHOD;

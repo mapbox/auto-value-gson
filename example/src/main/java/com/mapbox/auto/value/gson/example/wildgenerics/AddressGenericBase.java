@@ -1,3 +1,4 @@
+// modified by mapbox
 package com.mapbox.auto.value.gson.example.wildgenerics;
 
 import com.google.auto.value.AutoValue;
