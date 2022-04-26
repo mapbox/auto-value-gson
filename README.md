@@ -1,3 +1,11 @@
+# Fork
+
+We forked [the original auto-value-gson library](https://github.com/rharter/auto-value-gson) to add features [mapbox-java](https://github.com/mapbox/mapbox-java) needs.
+The fork is tested only against scenarios [mapbox-java](https://github.com/mapbox/mapbox-java) uses.
+Please note that the package `com.rharter` was renamed to `com.mapbox` so that it's possible to have both libraries as dependency.
+
+Find the original library readme bellow. 
+
 # AutoValue: Gson Extension
 
 An extension for Google's [AutoValue](https://github.com/google/auto) that creates a simple [Gson](https://github.com/google/gson) TypeAdapterFactory for each AutoValue annotated object.
