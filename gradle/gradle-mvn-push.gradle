@@ -22,7 +22,9 @@ group = GROUP
 publishing {
     publications {
         MapboxLibraryPublication(MavenPublication) {
-            from components.java
+            groupId GROUP
+            version VERSION_NAME
+            artifact("build/libs/${POM_ARTIFACT_ID}-${VERSION_NAME}.jar")
 
             pom {
                 name.set(POM_NAME)
