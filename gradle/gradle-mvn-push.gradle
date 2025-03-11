@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+apply plugin: 'com.mapbox.sdkRegistry'
 
 version = VERSION_NAME
 group = GROUP
 
 publishing {
     publications {
-        mavenJava(MavenPublication) {
+        MapboxLibraryPublication(MavenPublication) {
             from components.java
 
             pom {
@@ -54,4 +55,14 @@ publishing {
     repositories {
         mavenLocal()
     }
+}
+
+registry {
+    sdkName = project.name
+    production = true
+    snapshot = VERSION_NAME.endsWith("-SNAPSHOT")
+    override = snapshot
+    dryRun = true
+    publish = true
+    publications = ["MapboxLibraryPublication"]
 }
