@@ -60,11 +60,11 @@ publishing {
 }
 
 registry {
-    sdkName = project.name
+    sdkName = "com-mapbox-mapboxsdk-" + project.name
     production = true
     snapshot = VERSION_NAME.endsWith("-SNAPSHOT")
     override = snapshot
-    dryRun = true
+    dryRun = false
     publish = true
     publications = ["MapboxLibraryPublication"]
 }
