@@ -1,4 +1,4 @@
-[comment]: <> modified by Mapbox
+[comment]: <> (modified by Mapbox)
 
 Releasing
 ========
