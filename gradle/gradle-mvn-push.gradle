@@ -55,7 +55,7 @@ publishing {
                 withXml {
                     def dependenciesNode = asNode().appendNode('dependencies')
                     // adding dependency manually because `from components.java`, which is supposed
-                    // to add api dependencies, doesn't work due to showjar configuration
+                    // to add api dependencies, doesn't work due to sadowjar configuration
                     configurations.api.allDependencies.each { dep ->
                         if (dep.group && dep.name && dep.version) {
                             def dependencyNode = dependenciesNode.appendNode('dependency')
