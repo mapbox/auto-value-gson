@@ -14,193 +14,78 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-apply plugin: 'maven'
-apply plugin: 'signing'
+apply plugin: 'com.mapbox.sdkRegistry'
 
 version = VERSION_NAME
 group = GROUP
 
-def isReleaseBuild() {
-    return VERSION_NAME.contains("SNAPSHOT") == false
-}
-
-afterEvaluate { project ->
-    uploadArchives {
-        repositories {
-            mavenLocal()
-            mavenDeployer {
-                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-                pom.groupId = GROUP
-                pom.artifactId = POM_ARTIFACT_ID
-                pom.version = VERSION_NAME
-
-                pom.project {
-                    name POM_NAME
-                    packaging POM_PACKAGING
-                    description POM_DESCRIPTION
-                    url POM_URL
-
-                    scm {
-                        url POM_SCM_URL
-                        connection POM_SCM_CONNECTION
-                        developerConnection POM_SCM_DEV_CONNECTION
-                    }
-
-                    licenses {
-                        license {
-                            name POM_LICENCE_NAME
-                            url POM_LICENCE_URL
-                            distribution POM_LICENCE_DIST
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id POM_DEVELOPER_ID
-                            name POM_DEVELOPER_NAME
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    signing {
-        required { isReleaseBuild() && gradle.taskGraph.hasTask("uploadArchives") }
-        sign configurations.archives
-    }
-
-    if (project.getPlugins().hasPlugin('com.android.application') ||
-            project.getPlugins().hasPlugin('com.android.library')) {
-        task install(type: Upload, dependsOn: assemble) {
-            repositories.mavenInstaller {
-                configuration = configurations.archives
-
-                pom.groupId = GROUP
-                pom.artifactId = POM_ARTIFACT_ID
-                pom.version = VERSION_NAME
-
-                pom.project {
-                    name POM_NAME
-                    packaging POM_PACKAGING
-                    description POM_DESCRIPTION
-                    url POM_URL
-
-                    scm {
-                        url POM_SCM_URL
-                        connection POM_SCM_CONNECTION
-                        developerConnection POM_SCM_DEV_CONNECTION
-                    }
-
-                    licenses {
-                        license {
-                            name POM_LICENCE_NAME
-                            url POM_LICENCE_URL
-                            distribution POM_LICENCE_DIST
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id POM_DEVELOPER_ID
-                            name POM_DEVELOPER_NAME
-                        }
-                    }
-                }
-            }
-        }
-
-        task androidJavadocs(type: Javadoc) {
-            source = android.sourceSets.main.java.source
-            classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-        }
-
-        task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
-            classifier = 'javadoc'
-            from androidJavadocs.destinationDir
-        }
-
-        task androidSourcesJar(type: Jar) {
-            classifier = 'sources'
-            from android.sourceSets.main.java.source
-        }
-    } else {
-        install {
-            repositories.mavenInstaller {
-                pom.groupId = GROUP
-                pom.artifactId = POM_ARTIFACT_ID
-                pom.version = VERSION_NAME
-
-                pom.project {
-                    name POM_NAME
-                    packaging POM_PACKAGING
-                    description POM_DESCRIPTION
-                    url POM_URL
-
-                    scm {
-                        url POM_SCM_URL
-                        connection POM_SCM_CONNECTION
-                        developerConnection POM_SCM_DEV_CONNECTION
-                    }
-
-                    licenses {
-                        license {
-                            name POM_LICENCE_NAME
-                            url POM_LICENCE_URL
-                            distribution POM_LICENCE_DIST
-                        }
-                    }
-
-                    developers {
-                        developer {
-                            id POM_DEVELOPER_ID
-                            name POM_DEVELOPER_NAME
-                        }
-                    }
-                }
-            }
-        }
-
-        task sourcesJar(type: Jar, dependsOn:classes) {
-            classifier = 'sources'
-            from sourceSets.main.allSource
-        }
-
-        task javadocJar(type: Jar, dependsOn:javadoc) {
-            classifier = 'javadoc'
-            from javadoc.destinationDir
-        }
-    }
-
-    if (JavaVersion.current().isJava8Compatible()) {
-        allprojects {
-            tasks.withType(Javadoc) {
-                options.addStringOption('Xdoclint:none', '-quiet')
-            }
-        }
-    }
-
-    artifacts {
-        if (project.getPlugins().hasPlugin('com.android.application') ||
-                project.getPlugins().hasPlugin('com.android.library')) {
-            archives androidSourcesJar
-            archives androidJavadocsJar
-        } else {
-            archives sourcesJar
-            archives javadocJar
-        }
-    }
-}
-
 publishing {
     publications {
-        mavenJava(MavenPublication) {
-            from components.java
+        MapboxLibraryPublication(MavenPublication) {
+            groupId GROUP
+            version VERSION_NAME
+            artifact("build/libs/${POM_ARTIFACT_ID}-${VERSION_NAME}.jar")
+
+            pom {
+                name.set(POM_NAME)
+                description.set(POM_DESCRIPTION)
+                url.set(POM_URL)
+
+                licenses {
+                    license {
+                        name.set(POM_LICENCE_NAME)
+                        url.set(POM_LICENCE_URL)
+                        distribution.set(POM_LICENCE_DIST)
+                    }
+                }
+
+                scm {
+                    url.set(POM_SCM_URL)
+                    connection.set(POM_SCM_CONNECTION)
+                    developerConnection.set(POM_SCM_DEV_CONNECTION)
+                }
+
+                developers {
+                    developer {
+                        id.set(POM_DEVELOPER_ID)
+                        name.set(POM_DEVELOPER_NAME)
+                    }
+                }
+
+                withXml {
+                    def dependenciesNode = asNode().appendNode('dependencies')
+                    // adding dependency manually because `from components.java`, which is supposed
+                    // to add api dependencies, doesn't work due to sadowjar configuration
+                    configurations.implementation.allDependencies.each { dep ->
+                        if (dep.group && dep.name && dep.version) {
+                            def dependencyNode = dependenciesNode.appendNode('dependency')
+                            dependencyNode.appendNode('groupId', dep.group)
+                            dependencyNode.appendNode('artifactId', dep.name)
+                            dependencyNode.appendNode('version', dep.version)
+                            def scope
+                            if (configurations.api.allDependencies.contains(dep)) {
+                                scope = "compile"
+                            } else {
+                                scope = "runtime"
+                            }
+                            dependencyNode.appendNode('scope', scope)
+                        }
+                    }
+                }
+            }
         }
     }
     repositories {
         mavenLocal()
     }
+}
+
+registry {
+    sdkName = "com-mapbox-mapboxsdk-" + project.name
+    production = true
+    snapshot = VERSION_NAME.endsWith("-SNAPSHOT")
+    override = snapshot
+    dryRun = false
+    publish = true
+    publications = ["MapboxLibraryPublication"]
 }

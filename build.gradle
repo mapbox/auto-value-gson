@@ -1,3 +1,4 @@
+// modified by Mapbox
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
@@ -6,9 +7,21 @@ buildscript {
             url "https://plugins.gradle.org/m2/"
         }
         jcenter()
+        google()
+        maven {
+            url 'https://api.mapbox.com/downloads/v2/releases/maven'
+            authentication {
+                basic(BasicAuthentication)
+            }
+            credentials {
+                username = "mapbox"
+                password = project.hasProperty('SDK_REGISTRY_TOKEN') ? project.property('SDK_REGISTRY_TOKEN') : System.getenv('SDK_REGISTRY_TOKEN')
+            }
+        }
     }
     dependencies {
         classpath "net.ltgt.gradle:gradle-apt-plugin:0.19"
+        classpath "com.mapbox.gradle.plugins:sdk-registry:0.7.0"
     }
 }
 
@@ -44,7 +57,3 @@ ext.deps = [
     gson: 'com.google.code.gson:gson:2.8.5'
 ]
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.10.2'
-    distributionUrl = "https://services.gradle.org/distributions/gradle-$gradleVersion-all.zip"
-}
