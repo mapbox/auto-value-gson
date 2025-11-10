@@ -961,7 +961,9 @@ public class AutoValueGsonExtension extends AutoValueExtension {
     if (unrecognisedJsonPropertiesContainer != null) {
       readMethod.beginControlFlow("if (unrecognised == null)");
       readMethod.addStatement("unrecognised = new $T()", mapOfSerializableJsonElements);
-      readMethod.addStatement("builder.$L(unrecognised)", unrecognisedJsonPropertiesContainer.methodName);
+      if (builderField.isPresent()) {
+        readMethod.addStatement("builder.$L(unrecognised)", unrecognisedJsonPropertiesContainer.methodName);
+      }
       readMethod.endControlFlow();
 
       readMethod.addStatement("$T element = gson.fromJson(jsonReader, $T.class)", JsonElement.class, JsonElement.class);
