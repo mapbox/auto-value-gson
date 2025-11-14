@@ -2625,6 +2625,7 @@ public class AutoValueGsonExtensionTest {
         + "      String a = null;\n"
         + "      int[] b = null;\n"
         + "      int c = 0;\n"
+        + "      boolean c_null = true;\n"
         + "      String d = null;\n"
         + "      String e = null;\n"
         + "      ImmutableMap<String, Number> f = null;\n"
@@ -2686,6 +2687,7 @@ public class AutoValueGsonExtensionTest {
         + "                this.int__adapter = int__adapter = gson.getAdapter(Integer.class);\n"
         + "              }\n"
         + "              c = int__adapter.read(jsonReader);\n"
+        + "              c_null = false;\n"
         + "              continue;\n"
         + "            }\n"
         + "            if (realFieldNames.get(\"e\").equals(_name)) {\n"
@@ -2779,6 +2781,9 @@ public class AutoValueGsonExtensionTest {
         + "      if (b == null) {\n"
         + "        missing += \" b\";\n"
         + "      }\n"
+        + "      if (c_null) {\n" +
+          "        missing += \" c\";\n" +
+          "      }\n"
         + "      if (d == null) {\n"
         + "        missing += \" d\";\n"
         + "      }\n"

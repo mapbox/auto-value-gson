@@ -897,6 +897,12 @@ public class AutoValueGsonExtension extends AutoValueExtension {
           readMethod.addCode("$L", "null");
         }
         readMethod.addCode(";\n$]");
+
+        // Keep track of primitive types that could be missing in the JSON when replicating builder
+        // behaviour
+        if (builderField.isPresent() && !useBuilderOnRead && prop.type.isPrimitive()) {
+          readMethod.addStatement("boolean $N_null = true", prop.humanName);
+        }
       }
     }
 
@@ -936,6 +942,9 @@ public class AutoValueGsonExtension extends AutoValueExtension {
           addFieldSetting(block, prop, fields, adapterField, jsonReader);
         }
         readMethod.addCode(block.build());
+        if (prop.type.isPrimitive() && builderField.isPresent() && !useBuilderOnRead) {
+          readMethod.addStatement("$N_null = false", prop.humanName);
+        }
         readMethod.addStatement("break");
         readMethod.endControlFlow();
       }
@@ -966,6 +975,9 @@ public class AutoValueGsonExtension extends AutoValueExtension {
           addFieldSetting(block, prop, fields, adapterField, jsonReader);
         }
         readMethod.addCode(block.build());
+        if (prop.type.isPrimitive() && builderField.isPresent() && !useBuilderOnRead) {
+          readMethod.addStatement("$N_null = false", prop.humanName);
+        }
         readMethod.addStatement("continue");
         readMethod.endControlFlow();
       }
@@ -1010,7 +1022,7 @@ public class AutoValueGsonExtension extends AutoValueExtension {
         if (property == unrecognisedJsonPropertiesContainer) {
           fieldsValues.add(unrecognisedFieldSpec);
         } else {
-          if (!property.nullable() && !property.type.isPrimitive()) {
+          if (builderField.isPresent() && !property.nullable()) {
             nonNullableProperties.add(entry.getValue());
           }
           fieldsValues.add(entry.getValue());
@@ -1024,13 +1036,19 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       // In order to maintain backwards compatibility with using Builder during read, we need to
       // validate that the non-nullable properties are not empty. If they're, we'll throw the same
       // exception as Builder.build() would.
-      if (!nonNullableProperties.isEmpty() && !useBuilderOnRead) {
+      if (!nonNullableProperties.isEmpty()) {
         FieldSpec missingProperty = FieldSpec.builder(String.class, "missing").build();
         readMethod.addStatement("$T $N = \"\"", missingProperty.type, missingProperty);
         for (FieldSpec nonNullableProperty : nonNullableProperties) {
-          readMethod.beginControlFlow("if ($N == null)", nonNullableProperty);
-          readMethod.addStatement("$N += \" $N\"", missingProperty, nonNullableProperty);
-          readMethod.endControlFlow();
+          if (nonNullableProperty.type.isPrimitive()) {
+            readMethod.beginControlFlow("if ($N_null)", nonNullableProperty.name);
+            readMethod.addStatement("$N += \" $N\"", missingProperty, nonNullableProperty);
+            readMethod.endControlFlow();
+          } else {
+            readMethod.beginControlFlow("if ($N == null)", nonNullableProperty);
+            readMethod.addStatement("$N += \" $N\"", missingProperty, nonNullableProperty);
+            readMethod.endControlFlow();
+          }
         }
         readMethod.beginControlFlow("if (!$N.isEmpty())", missingProperty);
         readMethod.addStatement("throw new $T($S + $N)", IllegalStateException.class, "Missing required properties: ", missingProperty);
