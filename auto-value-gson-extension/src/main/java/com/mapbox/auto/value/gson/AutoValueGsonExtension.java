@@ -45,6 +45,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -848,6 +849,8 @@ public class AutoValueGsonExtension extends AutoValueExtension {
             .builder(TypeName.get(ctx.builderType().asType()), "builder")
             .build());
 
+    Property unrecognisedJsonPropertiesContainer = findUnrecognizedJsonPropertiesContainer(properties, processingEnvironment);
+
     if (builderField.isPresent() && useBuilderOnRead) {
       Set<ExecutableElement> builderMethods = builderContext.builderMethods();
 
@@ -881,6 +884,10 @@ public class AutoValueGsonExtension extends AutoValueExtension {
         TypeName fieldType = prop.type;
         FieldSpec field = FieldSpec.builder(fieldType, prop.humanName).build();
         fields.put(prop, field);
+        if (prop == unrecognisedJsonPropertiesContainer) {
+          // Unrecognized property will be handled separately.
+          continue;
+        }
 
         CodeBlock defaultValue = getDefaultValue(prop, field);
         readMethod.addCode("$[$T $N = ", field.type, field);
@@ -894,9 +901,9 @@ public class AutoValueGsonExtension extends AutoValueExtension {
     }
 
     TypeName mapOfSerializableJsonElements = ParameterizedTypeName.get(LinkedHashMap.class, String.class, SerializableJsonElement.class);
-    Property unrecognisedJsonPropertiesContainer = findUnrecognizedJsonPropertiesContainer(properties, processingEnvironment);
+    FieldSpec unrecognisedFieldSpec = FieldSpec.builder(mapOfSerializableJsonElements, "unrecognised").build();
     if (unrecognisedJsonPropertiesContainer != null) {
-      readMethod.addStatement("$T unrecognised = null", mapOfSerializableJsonElements);
+      readMethod.addStatement("$T $N = null", unrecognisedFieldSpec.type, unrecognisedFieldSpec);
     }
 
     readMethod.beginControlFlow("while ($N.hasNext())", jsonReader);
@@ -964,15 +971,15 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       }
     }
     if (unrecognisedJsonPropertiesContainer != null) {
-      readMethod.beginControlFlow("if (unrecognised == null)");
-      readMethod.addStatement("unrecognised = new $T()", mapOfSerializableJsonElements);
+      readMethod.beginControlFlow("if ($N == null)", unrecognisedFieldSpec);
+      readMethod.addStatement("$N = new $T()",unrecognisedFieldSpec, unrecognisedFieldSpec.type);
       if (builderField.isPresent() && useBuilderOnRead) {
-        readMethod.addStatement("builder.$L(unrecognised)", unrecognisedJsonPropertiesContainer.methodName);
+        readMethod.addStatement("builder.$L($N)", unrecognisedJsonPropertiesContainer.methodName, unrecognisedFieldSpec);
       }
       readMethod.endControlFlow();
 
       readMethod.addStatement("$T element = gson.fromJson(jsonReader, $T.class)", JsonElement.class, JsonElement.class);
-      readMethod.addStatement("unrecognised.put(_name, new $T(element))", SerializableJsonElement.class);
+      readMethod.addStatement("$N.put(_name, new $T(element))",unrecognisedFieldSpec, SerializableJsonElement.class);
       readMethod.addStatement("continue");
     } else {
       readMethod.addStatement("$N.skipValue()", jsonReader);
@@ -994,15 +1001,22 @@ public class AutoValueGsonExtension extends AutoValueExtension {
         format.append("<>");
       }
       format.append("(");
-      Iterator<FieldSpec> iterator = fields.values().iterator();
+      Iterator<Map.Entry<Property, FieldSpec>> iterator = fields.entrySet().iterator();
+      LinkedList<FieldSpec> fieldsValues = new LinkedList<>();
       while (iterator.hasNext()) {
-        iterator.next();
+        Map.Entry<Property, FieldSpec> entry = iterator.next();
+        Property key = entry.getKey();
+        if (key == unrecognisedJsonPropertiesContainer) {
+          fieldsValues.add(unrecognisedFieldSpec);
+        } else {
+          fieldsValues.add(entry.getValue());
+        }
         format.append("$N");
         if (iterator.hasNext())
           format.append(", ");
       }
       format.append(")");
-      readMethod.addStatement(format.toString(), fields.values().toArray());
+      readMethod.addStatement(format.toString(), fieldsValues.toArray());
     }
 
     return readMethod.build();

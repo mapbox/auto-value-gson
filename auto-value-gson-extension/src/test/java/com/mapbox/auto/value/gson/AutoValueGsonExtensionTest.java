@@ -2276,6 +2276,8 @@ public class AutoValueGsonExtensionTest {
         + "import java.util.Optional;\n"
         + "import java.util.Set;\n"
         + "import com.mapbox.auto.value.gson.GsonTypeAdapterConfig;\n"
+        + "import com.mapbox.auto.value.gson.SerializableJsonElement;\n"
+        + "import com.mapbox.auto.value.gson.UnrecognizedJsonProperties;\n"
         + "@GsonTypeAdapterConfig(useBuilderOnRead = false)\n"
         + "@AutoValue abstract class Test {\n"
         + "  static TypeAdapter<Test> typeAdapter(Gson gson) {\n"
@@ -2308,7 +2310,9 @@ public class AutoValueGsonExtensionTest {
         // ImmutableList set with List
         + "abstract ImmutableList<String> q();\n"
         // ImmutableList set with ImmutableList.Builder
-        + "abstract ImmutableList<String> r();\n" +
+        + "abstract ImmutableList<String> r();\n"
+        + "@UnrecognizedJsonProperties\n"
+        + "abstract Map<String, SerializableJsonElement> unrecognized();\n" +
         "  @AutoValue.Builder static abstract class Builder {\n" +
         "    abstract Builder a(String a);\n" +
         "    abstract Builder b(int[] b);\n" +
@@ -2324,6 +2328,7 @@ public class AutoValueGsonExtensionTest {
         "    abstract Builder p(String p);\n" +
         "    abstract Builder q(List<String> q);\n" +
         "    abstract ImmutableList.Builder<String> rBuilder();\n" +
+        "    abstract Builder unrecognized(Map<String, SerializableJsonElement> value);\n" +
         "    abstract Test build();\n" +
         "  }\n" +
         "  static class TestTypeAdapter extends TypeAdapter<String> {\n" +
@@ -2345,12 +2350,14 @@ public class AutoValueGsonExtensionTest {
         + "import com.google.common.collect.ImmutableList;\n" // Line 3
         + "import com.google.common.collect.ImmutableMap;\n"
         + "import com.google.gson.Gson;\n"
+        + "import com.google.gson.JsonElement;\n"
         + "import com.google.gson.TypeAdapter;\n"
         + "import com.google.gson.reflect.TypeToken;\n"
         + "import com.google.gson.stream.JsonReader;\n"
         + "import com.google.gson.stream.JsonToken;\n"
         + "import com.google.gson.stream.JsonWriter;\n"
         + "import com.mapbox.auto.value.gson.Nullable;\n"
+        + "import com.mapbox.auto.value.gson.SerializableJsonElement;\n"
         + "import com.mapbox.auto.value.gson.internal.Util;\n"
         + "import com.mapbox.auto.value.gson.internal.WildcardUtil;\n"
         + "import java.io.IOException;\n"
@@ -2361,6 +2368,7 @@ public class AutoValueGsonExtensionTest {
         + "import java.lang.StringBuilder;\n"
         + "import java.lang.SuppressWarnings;\n"
         + "import java.util.ArrayList;\n"
+        + "import java.util.LinkedHashMap;\n"
         + "import java.util.List;\n"
         + "import java.util.Map;\n"
         + "import java.util.Optional;\n"
@@ -2376,9 +2384,10 @@ public class AutoValueGsonExtensionTest {
         + "      ImmutableMap<String, Number> f, Set<String> g, Map<String, Set<String>> h, "
         + "String i,\n"
         + "      @Nullable List<? extends String> j,\n"
-        + "      Map<String, Map<String, Map<String, Map<String, Map<String, ? extends "
-        + "String>>>>> o, Optional<String> p, ImmutableList<String> q, ImmutableList<String> r) {\n"
-        + "    super(a, b, c, d, e, f, g, h, i, j, o, p, q, r);\n"
+        + "      Map<String, Map<String, Map<String, Map<String, Map<String, ? extends String>>>>> o,"
+        + "      Optional<String> p, ImmutableList<String> q, ImmutableList<String> r,\n"
+        + "      Map<String, SerializableJsonElement> unrecognized) {\n"
+        + "    super(a, b, c, d, e, f, g, h, i, j, o, p, q, r, unrecognized);\n"
         + "  }\n"
         + "\n"
         + "  static final class GsonTypeAdapter extends TypeAdapter<Test> {\n"
@@ -2397,6 +2406,7 @@ public class AutoValueGsonExtensionTest {
         + "map__string_map__string_map__string_map__string_map__string_wildcard__string_adapter;\n"
         + "    private volatile TypeAdapter<Optional<String>> optional__string_adapter;\n"
         + "    private volatile TypeAdapter<ImmutableList<String>> immutableList__string_adapter;\n"
+        + "    private volatile TypeAdapter<Map<String, SerializableJsonElement>> map__string_serializableJsonElement_adapter;\n"
         + "    private final Map<String, String> realFieldNames;\n"
         + "    private final Gson gson;\n"
         + "    GsonTypeAdapter(Gson gson) {\n"
@@ -2415,6 +2425,7 @@ public class AutoValueGsonExtensionTest {
         + "      fields.add(\"p\");\n"
         + "      fields.add(\"q\");\n"
         + "      fields.add(\"r\");\n"
+        + "      fields.add(\"unrecognized\");\n"
         + "      this.gson = gson;\n"
         + "      this.realFieldNames = Util.renameFields($AutoValue_Test.class, fields, gson"
         + ".fieldNamingStrategy());\n"
@@ -2592,6 +2603,14 @@ public class AutoValueGsonExtensionTest {
         + "        }\n"
         + "        immutableList__string_adapter.write(jsonWriter, object.r());\n"
         + "      }\n"
+        + "      if(object.unrecognized() != null) {\n"
+        + "        for (Map.Entry<String, SerializableJsonElement> entry : object.unrecognized().entrySet()) {\n"
+        + "          jsonWriter.name(entry.getKey());\n"
+        + "          JsonElement element = entry.getValue().getElement();\n"
+        + "          TypeAdapter adapter = gson.getAdapter(element.getClass());\n"
+        + "          adapter.write(jsonWriter, element);\n"
+        + "        }\n"
+        + "      }\n"
         + "      jsonWriter.endObject();\n"
         + "    }\n"
         + "    @Override\n"
@@ -2617,7 +2636,7 @@ public class AutoValueGsonExtensionTest {
         + "      Optional<String> p = null;\n"
         + "      ImmutableList<String> q = null;\n"
         + "      ImmutableList<String> r = null;\n"
-//        + "      Test.Builder builder = new AutoValue_Test.Builder();\n"
+        + "      LinkedHashMap<String, SerializableJsonElement> unrecognised = null;\n"
         + "      while (jsonReader.hasNext()) {\n"
         + "        String _name = jsonReader.nextName();\n"
         + "        if (jsonReader.peek() == JsonToken.NULL) {\n"
@@ -2742,12 +2761,17 @@ public class AutoValueGsonExtensionTest {
         + "              r = immutableList__string_adapter.read(jsonReader);\n"
         + "              continue;\n"
         + "            }\n"
-        + "            jsonReader.skipValue();\n"
+        + "            if (unrecognised == null) {"
+        + "              unrecognised = new LinkedHashMap<String, SerializableJsonElement>();\n"
+        + "            }\n"
+        + "            JsonElement element = gson.fromJson(jsonReader, JsonElement.class);\n"
+        + "            unrecognised.put(_name, new SerializableJsonElement(element));\n"
+        + "            continue;\n"
         + "          }\n"
         + "        }\n"
         + "      }\n"
         + "      jsonReader.endObject();\n"
-        + "      return new AutoValue_Test(a, b, c, d, e, f, g, h, i, j, o, p, q, r);\n"
+        + "      return new AutoValue_Test(a, b, c, d, e, f, g, h, i, j, o, p, q, r, unrecognised);\n"
         + "    }\n"
         + "\n"
         + "    @Override\n"
