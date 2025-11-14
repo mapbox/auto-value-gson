@@ -1761,7 +1761,7 @@ public class AutoValueGsonExtensionTest {
   }
 
   @Test
-  public void simpleWithBuilderBuilderOnRead() {
+  public void simpleWithBuilderUseBuilderOnRead() {
     JavaFileObject source = JavaFileObjects.forSourceString("test.Test", ""
         + "package test;\n"
         + "import com.google.gson.annotations.SerializedName;\n"
@@ -2361,6 +2361,7 @@ public class AutoValueGsonExtensionTest {
         + "import com.mapbox.auto.value.gson.internal.Util;\n"
         + "import com.mapbox.auto.value.gson.internal.WildcardUtil;\n"
         + "import java.io.IOException;\n"
+        + "import java.lang.IllegalStateException;\n"
         + "import java.lang.Integer;\n"
         + "import java.lang.Number;\n"
         + "import java.lang.Override;\n"
@@ -2771,6 +2772,43 @@ public class AutoValueGsonExtensionTest {
         + "        }\n"
         + "      }\n"
         + "      jsonReader.endObject();\n"
+        + "      String missing = \"\";\n"
+        + "      if (a == null) {\n"
+        + "        missing += \" a\";\n"
+        + "      }\n"
+        + "      if (b == null) {\n"
+        + "        missing += \" b\";\n"
+        + "      }\n"
+        + "      if (d == null) {\n"
+        + "        missing += \" d\";\n"
+        + "      }\n"
+        + "      if (f == null) {\n"
+        + "        missing += \" f\";\n"
+        + "      }\n"
+        + "      if (g == null) {\n" +
+          "        missing += \" g\";\n" +
+          "      }\n" +
+          "      if (h == null) {\n" +
+          "        missing += \" h\";\n" +
+          "      }\n" +
+          "      if (i == null) {\n" +
+          "        missing += \" i\";\n" +
+          "      }\n" +
+          "      if (o == null) {\n" +
+          "        missing += \" o\";\n" +
+          "      }\n" +
+          "      if (p == null) {\n" +
+          "        missing += \" p\";\n" +
+          "      }\n" +
+          "      if (q == null) {\n" +
+          "        missing += \" q\";\n" +
+          "      }\n" +
+          "      if (r == null) {\n" +
+          "        missing += \" r\";\n" +
+          "      }\n" +
+          "      if (!missing.isEmpty()) {\n" +
+          "        throw new IllegalStateException(\"Missing required properties: \" + missing);\n" +
+          "      }"
         + "      return new AutoValue_Test(a, b, c, d, e, f, g, h, i, j, o, p, q, r, unrecognised);\n"
         + "    }\n"
         + "\n"

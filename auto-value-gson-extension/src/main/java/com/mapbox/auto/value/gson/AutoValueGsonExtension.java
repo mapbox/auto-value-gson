@@ -1003,12 +1003,16 @@ public class AutoValueGsonExtension extends AutoValueExtension {
       format.append("(");
       Iterator<Map.Entry<Property, FieldSpec>> iterator = fields.entrySet().iterator();
       LinkedList<FieldSpec> fieldsValues = new LinkedList<>();
+      LinkedList<FieldSpec> nonNullableProperties = new LinkedList<>();
       while (iterator.hasNext()) {
         Map.Entry<Property, FieldSpec> entry = iterator.next();
-        Property key = entry.getKey();
-        if (key == unrecognisedJsonPropertiesContainer) {
+        Property property = entry.getKey();
+        if (property == unrecognisedJsonPropertiesContainer) {
           fieldsValues.add(unrecognisedFieldSpec);
         } else {
+          if (!property.nullable() && !property.type.isPrimitive()) {
+            nonNullableProperties.add(entry.getValue());
+          }
           fieldsValues.add(entry.getValue());
         }
         format.append("$N");
@@ -1016,6 +1020,23 @@ public class AutoValueGsonExtension extends AutoValueExtension {
           format.append(", ");
       }
       format.append(")");
+
+      // In order to maintain backwards compatibility with using Builder during read, we need to
+      // validate that the non-nullable properties are not empty. If they're, we'll throw the same
+      // exception as Builder.build() would.
+      if (!nonNullableProperties.isEmpty() && !useBuilderOnRead) {
+        FieldSpec missingProperty = FieldSpec.builder(String.class, "missing").build();
+        readMethod.addStatement("$T $N = \"\"", missingProperty.type, missingProperty);
+        for (FieldSpec nonNullableProperty : nonNullableProperties) {
+          readMethod.beginControlFlow("if ($N == null)", nonNullableProperty);
+          readMethod.addStatement("$N += \" $N\"", missingProperty, nonNullableProperty);
+          readMethod.endControlFlow();
+        }
+        readMethod.beginControlFlow("if (!$N.isEmpty())", missingProperty);
+        readMethod.addStatement("throw new $T($S + $N)", IllegalStateException.class, "Missing required properties: ", missingProperty);
+        readMethod.endControlFlow();
+      }
+
       readMethod.addStatement(format.toString(), fieldsValues.toArray());
     }
 
